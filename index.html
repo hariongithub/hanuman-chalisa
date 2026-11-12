@@ -110,6 +110,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .tbar { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; align-items: center; }
 .tbar .ghost { font: inherit; padding: 8px 14px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); color: var(--ink); cursor: pointer; min-height: 40px; }
 textarea.export { width: 100%; min-height: 110px; font: 0.85rem ui-monospace, monospace; padding: 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); color: var(--ink); }
+footer p { margin: 0 0 8px; }
 footer { margin-top: 36px; color: var(--muted); font-size: 0.88rem; max-width: 62ch; }
 @media (max-width: 480px) {
   .verse { grid-template-columns: 34px minmax(0, 1fr); gap: 4px 10px; }
@@ -150,7 +151,11 @@ footer { margin-top: 36px; color: var(--muted); font-size: 0.88rem; max-width: 6
   <main id="main"></main>
 
   <footer>
-    Text by Tulsidas (16th century, public domain). Meanings and word-by-word glosses are plain-English renderings written for children from general knowledge of Hindi, Awadhi and Sanskrit, not from a published dictionary. Glosses marked less certain are the ones most worth checking with a teacher. Devanagari and English sounds follow the printed edition supplied by the site owner. Telugu is generated from the Devanagari by rule and may differ slightly from a printed edition.  Recording: M. S. Subbulakshmi and Radha Vishwanathan, Samarpanam, Saregama India.
+    <p><strong>Credits</strong></p>
+    <p>Made by Hari for our family, with recitation by Sneha (her verse-by-verse recordings are being added).</p>
+    <p>Full recording above: M. S. Subbulakshmi and Radha Vishwanathan, <em>Samarpanam</em> (Saregama India), played from YouTube.</p>
+    <p>Verses by Tulsidas (16th century, public domain). Devanagari and English follow the printed edition we use. The Telugu is generated from the Devanagari by rule, not hand-checked, and may differ slightly from a printed edition.</p>
+    <p>Meanings and word-by-word glosses were written with Claude from general knowledge of Hindi, Awadhi and Sanskrit, not from a published dictionary, and have not yet been reviewed by a Sanskrit or Hindi scholar. Please check the dotted-underlined words with a teacher.</p>
   </footer>
 </div>
 
