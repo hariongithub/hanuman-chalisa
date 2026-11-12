@@ -4,6 +4,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Hanuman Chalisa Reader</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Devanagari:wght@400;600&family=Noto+Serif+Telugu:wght@400;600&family=Source+Sans+3:wght@400;500;600&family=Source+Serif+4:ital,wght@0,400;1,400&display=swap">
+<script>
+(function(){var t="dark";try{t=localStorage.getItem("chalisa-theme")||"dark"}catch(e){}document.documentElement.setAttribute("data-theme",t)})();
+</script>
 <style>
 /* Layout: one reading column; sticky toolbar with mode + script switches; verses as ruled entries, not cards. */
 :root {
@@ -41,7 +44,9 @@ body {
   padding-block: 0 48px;
 }
 .wrap { max-width: 720px; margin: 0 auto; }
-header { padding: 28px 0 16px; }
+header { padding: 28px 0 16px; position: relative; }
+.theme-toggle { position: absolute; top: 28px; right: 0; background: var(--surface); color: var(--ink); border: 1px solid var(--rule); border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 14px; cursor: pointer; }
+.theme-toggle:hover { border-color: var(--accent); }
 h1 { font-family: var(--font-dev); font-size: clamp(1.8rem, 6vw, 2.6rem); font-weight: 600; margin: 0; line-height: 1.2; text-wrap: balance; }
 .sub { margin: 6px 0 0; color: var(--muted); max-width: 52ch; }
 .listen-all { display: inline-block; margin-top: 12px; color: var(--accent); font-weight: 600; text-decoration: none; border-bottom: 1px solid currentColor; }
@@ -119,6 +124,7 @@ footer { margin-top: 36px; color: var(--muted); font-size: 0.88rem; max-width: 6
 <body>
 <div class="wrap">
   <header>
+    <button type="button" class="theme-toggle" id="themeToggle" aria-label="Switch between dark and light theme"></button>
     <h1>हनुमान चालीसा</h1>
     <p class="sub">Hanuman Chalisa by Tulsidas: all 40 verses with the two opening couplets the closing couplet and the closing cries, in Devanagari, Telugu and English sounds, with a plain meaning for each.</p>
     <a class="listen-all" id="listenAll" href="https://www.youtube.com/watch?v=Ipuh-P9NtuY" target="_blank" rel="noopener">Listen: M. S. Subbulakshmi, Samarpanam (Saregama)</a>
@@ -278,6 +284,18 @@ document.getElementById("main").addEventListener("change", e => {
   const row = i.closest(".trow"), a = row.querySelector("a"), href = linkFor(key);
   a.className = href ? "" : "off"; a.href = href || "#"; i.value = t != null ? fmt(t) : "";
 });
+(function(){
+  const btn = document.getElementById("themeToggle");
+  const cur = () => document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+  const paint = () => { btn.textContent = cur() === "dark" ? "Light mode" : "Dark mode"; };
+  btn.addEventListener("click", () => {
+    const next = cur() === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem("chalisa-theme", next); } catch (e) {}
+    paint();
+  });
+  paint();
+})();
 
 let clip = null, ytPlayer = null, stopAt = null;
 function clipName(id) { id = String(id); return /^\d+$/.test(id) ? id.padStart(2, "0") : id; }
