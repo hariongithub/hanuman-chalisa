@@ -194,7 +194,7 @@ function renderRead() {
     if (v.group !== group) { group = v.group; html += `<div class="group">${esc(group)}</div>`; }
     const sc = state.script;
     const main = lines(v, sc).map(l => `<span>${esc(l)}</span>`).join("");
-    const sound = sc !== "eng" ? `<p class="sound">${v.rom.map(l => `<span>${esc(l)}</span>`).join("")}</p>` : "";
+    const sound = (sc !== "eng" && practice) ? `<p class="sound">${v.rom.map(l => `<span>${esc(l)}</span>`).join("")}</p>` : "";
     const veil = practice ? " veil" : "";
     const href = linkFor(v.id);
     const tools = [];
