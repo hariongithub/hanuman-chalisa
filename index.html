@@ -118,6 +118,10 @@ footer { margin-top: 36px; color: var(--muted); font-size: 0.88rem; max-width: 6
   .trow { grid-template-columns: 44px 1fr 84px; } .trow a { grid-column: 2 / 4; justify-self: start; }
 }
 @media (prefers-reduced-motion: reduce) { .practice .veil { transition: none; } }
+.tools .playbtn { width: 36px; height: 36px; min-height: 36px; padding: 0; border: 1.5px solid var(--accent); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+.tools .playbtn svg { width: 16px; height: 16px; fill: currentColor; }
+.tools .playbtn:hover { background: var(--accent); color: var(--accent-ink); }
+.tools .playbtn.nofile { width: auto; padding: 0 12px; border-radius: 999px; font-size: 0.85rem; }
 .rec { margin: 10px 0 4px; }
 .rec summary { cursor: pointer; color: var(--accent); font-weight: 600; padding: 6px 0; }
 .rec .player { max-width: 420px; }
@@ -194,7 +198,7 @@ function renderRead() {
     const veil = practice ? " veil" : "";
     const href = linkFor(v.id);
     const tools = [];
-    tools.push(`<button type="button" data-play="${v.id}">Hear this verse</button>`);
+    tools.push(`<button type="button" class="playbtn" data-play="${v.id}" aria-label="Hear this verse" title="Hear this verse">${PLAY}</button>`);
     if (href) tools.push(`<button type="button" data-listen="${v.id}">In the recording (${fmt(state.times[v.id])})</button>`);
     if (v.wbw.length && !practice) tools.push(`<button type="button" data-wbw="${v.id}" aria-expanded="false">Word by word</button>`);
     html += `<article class="verse" id="v-${v.id}">
@@ -307,16 +311,26 @@ document.getElementById("main").addEventListener("change", e => {
 
 let clip = null, ytPlayer = null, stopAt = null;
 function clipName(id) { id = String(id); return /^\d+$/.test(id) ? id.padStart(2, "0") : id; }
+const PLAY = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>';
+const PAUSE = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z"/></svg>';
+function setBtn(btn, st) {
+  btn.dataset.state = st;
+  btn.classList.toggle("nofile", st === "error");
+  if (st === "playing") { btn.innerHTML = PAUSE; btn.setAttribute("aria-label", "Pause"); }
+  else if (st === "error") { btn.textContent = "No recording yet"; }
+  else { btn.innerHTML = PLAY; btn.setAttribute("aria-label", "Hear this verse"); }
+}
 function playClip(btn) {
+  if (btn.dataset.state === "playing") { if (clip) clip.pause(); setBtn(btn, "idle"); return; }
   if (clip) { clip.pause(); }
   try { if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo(); } catch (e) {}
   stopAt = null;
-  document.querySelectorAll("[data-play]").forEach(b => { if (b !== btn) b.textContent = "Hear this verse"; });
+  document.querySelectorAll("[data-play]").forEach(b => { if (b !== btn) setBtn(b, "idle"); });
   clip = new Audio("audio/" + clipName(btn.dataset.play) + ".m4a");
-  btn.textContent = "Loading...";
-  clip.addEventListener("playing", () => { btn.textContent = "Playing..."; });
-  clip.addEventListener("ended", () => { btn.textContent = "Hear this verse"; });
-  clip.addEventListener("error", () => { btn.textContent = "No recording yet"; });
+  clip.addEventListener("playing", () => setBtn(btn, "playing"));
+  clip.addEventListener("ended", () => setBtn(btn, "idle"));
+  clip.addEventListener("pause", () => { if (btn.dataset.state === "playing") setBtn(btn, "idle"); });
+  clip.addEventListener("error", () => setBtn(btn, "error"));
   clip.play().catch(() => {});
 }
 function listenFrom(id) {
