@@ -118,6 +118,9 @@ footer { margin-top: 36px; color: var(--muted); font-size: 0.88rem; max-width: 6
   .trow { grid-template-columns: 44px 1fr 84px; } .trow a { grid-column: 2 / 4; justify-self: start; }
 }
 @media (prefers-reduced-motion: reduce) { .practice .veil { transition: none; } }
+.rec { margin: 10px 0 4px; }
+.rec summary { cursor: pointer; color: var(--accent); font-weight: 600; padding: 6px 0; }
+.rec .player { max-width: 420px; }
 .player { aspect-ratio: 16 / 9; max-width: 100%; margin: 10px 0 4px; background: #000; border-radius: 8px; overflow: hidden; }
 .player iframe { width: 100%; height: 100%; display: block; }
 </style>
@@ -131,8 +134,8 @@ footer { margin-top: 36px; color: var(--muted); font-size: 0.88rem; max-width: 6
     <a class="listen-all" id="listenAll" href="https://www.youtube.com/watch?v=Ipuh-P9NtuY" target="_blank" rel="noopener">Listen: M. S. Subbulakshmi, Samarpanam (Saregama)</a>
   </header>
 
-  <div class="player"><iframe id="yt" src="https://www.youtube.com/embed/Ipuh-P9NtuY?enablejsapi=1&rel=0&playsinline=1" title="M. S. Subbulakshmi, Hanuman Chalisa" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
-  <p class="sub" style="margin:4px 0 0;font-size:14px">Video not showing? <a href="https://www.youtube.com/watch?v=Ipuh-P9NtuY" target="_blank" rel="noopener">Open it on YouTube</a>.</p>
+  <details class="rec" id="rec"><summary>Full recording: M. S. Subbulakshmi (show player)</summary><div class="player"><iframe id="yt" src="https://www.youtube.com/embed/Ipuh-P9NtuY?enablejsapi=1&rel=0&playsinline=1" title="M. S. Subbulakshmi, Hanuman Chalisa" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+  <p class="sub" style="margin:4px 0 0;font-size:14px">Video not showing? <a href="https://www.youtube.com/watch?v=Ipuh-P9NtuY" target="_blank" rel="noopener">Open it on YouTube</a>.</p></details>
 
   <div class="bar" role="toolbar" aria-label="View options">
     <div class="seg" id="modes" role="group" aria-label="Mode">
@@ -320,6 +323,7 @@ function playClip(btn) {
 function listenFrom(id) {
   const t = state.times[id]; if (t == null) return;
   if (clip) clip.pause();
+  const rec = document.getElementById("rec"); if (rec) rec.open = true;
   const later = DATA.map(v => state.times[v.id]).filter(x => x != null && x > t).sort((a, b) => a - b);
   stopAt = later.length ? later[0] : null;
   if (ytPlayer && ytPlayer.seekTo) { ytPlayer.seekTo(t, true); ytPlayer.playVideo(); }
