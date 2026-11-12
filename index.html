@@ -122,6 +122,13 @@ footer { margin-top: 36px; color: var(--muted); font-size: 0.88rem; max-width: 6
 .tools .playbtn svg { width: 16px; height: 16px; fill: currentColor; }
 .tools .playbtn:hover { background: var(--accent); color: var(--accent-ink); }
 .tools .playbtn.nofile { width: auto; padding: 0 12px; border-radius: 999px; font-size: 0.85rem; }
+.tools .playbtn.live { background: var(--bad); border-color: var(--bad); color: #fff; animation: pulse 1.2s infinite; }
+@keyframes pulse { 50% { opacity: .6; } }
+.recstatus { font-size: 0.85rem; color: var(--muted); }
+.recpanel { border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px; margin-top: 8px; }
+.recpanel label { display: block; margin: 8px 0; }
+.recpanel input { display: block; width: 100%; margin-top: 4px; font: inherit; padding: 6px 8px; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); color: var(--ink); }
+.recpanel button { font: inherit; padding: 6px 12px; border: 1px solid var(--accent); border-radius: 6px; background: none; color: var(--accent); cursor: pointer; }
 .rec { margin: 10px 0 4px; }
 .rec summary { cursor: pointer; color: var(--accent); font-weight: 600; padding: 6px 0; }
 .rec .player { max-width: 420px; }
@@ -162,6 +169,14 @@ footer { margin-top: 36px; color: var(--muted); font-size: 0.88rem; max-width: 6
     <p>Full recording above: M. S. Subbulakshmi and Radha Vishwanathan, <em>Samarpanam</em> (Saregama India), played from YouTube.</p>
     <p>Verses by Tulsidas (16th century, public domain). Devanagari and English follow the printed edition we use. The Telugu is generated from the Devanagari by rule, not hand-checked, and may differ slightly from a printed edition.</p>
     <p>Meanings and word-by-word glosses were written with Claude from general knowledge of Hindi, Awadhi and Sanskrit, not from a published dictionary, and have not yet been reviewed by a Sanskrit or Hindi scholar. Please check the dotted-underlined words with a teacher.</p>
+  <p><a href="#" id="recToggle">Recorder tools</a></p>
+    <div id="recpanel" class="recpanel" hidden>
+      <p>For Sneha: with this on, each verse gets a record button and a bin next to its play button. A recording is saved straight into the GitHub repo, so everyone hears it a minute or two later. Record on an iPhone in Safari, since that makes files every device can play.</p>
+      <label>Repository<input id="recRepo" type="text" autocomplete="off"></label>
+      <label>GitHub token<input id="recToken" type="password" autocomplete="off" placeholder="Paste token"></label>
+      <p><button type="button" id="recSave">Save</button> <button type="button" id="recClear">Remove token</button> <span id="recMsg"></span></p>
+      <p>Make the token at github.com: Settings, Developer settings, Fine-grained tokens. Limit it to this one repository and set Contents to Read and write. It stays on this device only.</p>
+    </div>
   </footer>
 </div>
 
@@ -199,6 +214,11 @@ function renderRead() {
     const href = linkFor(v.id);
     const tools = [];
     tools.push(`<button type="button" class="playbtn" data-play="${v.id}" aria-label="Hear this verse" title="Hear this verse">${PLAY}</button>`);
+    if (REC.on) {
+      tools.push(`<button type="button" class="playbtn" data-rec="${v.id}" aria-label="Record this verse" title="Record this verse">${MIC}</button>`);
+      tools.push(`<button type="button" class="playbtn" data-del="${v.id}" aria-label="Delete this recording" title="Delete this recording">${TRASH}</button>`);
+      tools.push(`<span class="recstatus" id="rs-${v.id}" role="status"></span>`);
+    }
     if (href) tools.push(`<button type="button" data-listen="${v.id}">In the recording (${fmt(state.times[v.id])})</button>`);
     if (v.wbw.length && !practice) tools.push(`<button type="button" data-wbw="${v.id}" aria-expanded="false">Word by word</button>`);
     html += `<article class="verse" id="v-${v.id}">
@@ -267,6 +287,8 @@ document.getElementById("scripts").addEventListener("click", e => {
 document.getElementById("main").addEventListener("click", e => {
   const veil = e.target.closest(".veil"); if (veil) { veil.classList.toggle("shown"); return; }
   const pl = e.target.closest("[data-play]"); if (pl) { playClip(pl); return; }
+  const rc = e.target.closest("[data-rec]"); if (rc) { toggleRecord(rc); return; }
+  const dl = e.target.closest("[data-del]"); if (dl) { deleteClip(dl); return; }
   const ls = e.target.closest("[data-listen]"); if (ls) { listenFrom(ls.dataset.listen); return; }
   const w = e.target.closest("[data-wbw]");
   if (w) {
@@ -320,17 +342,26 @@ function setBtn(btn, st) {
   else if (st === "error") { btn.textContent = "No recording yet"; }
   else { btn.innerHTML = PLAY; btn.setAttribute("aria-label", "Hear this verse"); }
 }
+const localClips = {};
+function clipSources(id) {
+  const n = clipName(id);
+  return (localClips[id] ? [localClips[id]] : []).concat(["audio/" + n + ".m4a", "audio/" + n + ".webm"]);
+}
 function playClip(btn) {
   if (btn.dataset.state === "playing") { if (clip) clip.pause(); setBtn(btn, "idle"); return; }
   if (clip) { clip.pause(); }
   try { if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo(); } catch (e) {}
   stopAt = null;
   document.querySelectorAll("[data-play]").forEach(b => { if (b !== btn) setBtn(b, "idle"); });
-  clip = new Audio("audio/" + clipName(btn.dataset.play) + ".m4a");
+  const srcs = clipSources(btn.dataset.play); let i = 0;
+  clip = new Audio(srcs[0]);
   clip.addEventListener("playing", () => setBtn(btn, "playing"));
   clip.addEventListener("ended", () => setBtn(btn, "idle"));
   clip.addEventListener("pause", () => { if (btn.dataset.state === "playing") setBtn(btn, "idle"); });
-  clip.addEventListener("error", () => setBtn(btn, "error"));
+  clip.addEventListener("error", () => {
+    i++;
+    if (i < srcs.length) { clip.src = srcs[i]; clip.play().catch(() => {}); } else setBtn(btn, "error");
+  });
   clip.play().catch(() => {});
 }
 function listenFrom(id) {
@@ -348,6 +379,147 @@ window.onYouTubeIframeAPIReady = function () {
     if (stopAt != null && ytPlayer && ytPlayer.getCurrentTime && ytPlayer.getCurrentTime() >= stopAt) { ytPlayer.pauseVideo(); stopAt = null; }
   }, 300);
 };
+
+// ---------- Recorder: record in the browser, save the clip into the GitHub repo ----------
+const MIC = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5A2.5 2.5 0 0 0 5.5 4v4a2.5 2.5 0 0 0 5 0V4A2.5 2.5 0 0 0 8 1.5zM3.5 7.5a.75.75 0 0 1 1.5 0 3 3 0 0 0 6 0 .75.75 0 0 1 1.5 0A4.5 4.5 0 0 1 8.75 11.96V14h1.75a.75.75 0 0 1 0 1.5h-5a.75.75 0 0 1 0-1.5h1.75v-2.04A4.5 4.5 0 0 1 3.5 7.5z"/></svg>';
+const STOP = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="3.5" width="9" height="9" rx="1.5"/></svg>';
+const TRASH = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 1.5h4l.5 1H14a.75.75 0 0 1 0 1.5H2a.75.75 0 0 1 0-1.5h3.5zM3.5 5h9l-.7 9a1 1 0 0 1-1 .9H5.2a1 1 0 0 1-1-.9z"/></svg>';
+const REC = { on: false, cfg: { repo: "hariongithub/hanuman-chalisa", token: "" }, rec: null, id: null };
+try {
+  REC.on = localStorage.getItem("chalisa-recorder") === "1";
+  Object.assign(REC.cfg, JSON.parse(localStorage.getItem("chalisa-rec-cfg") || "{}"));
+} catch (e) {}
+
+function recStatus(id, msg) { const el = document.getElementById("rs-" + id); if (el) el.textContent = msg; }
+function recBtn(id, kind) {
+  const b = document.querySelector('[data-rec="' + id + '"]'); if (!b) return;
+  b.classList.toggle("live", kind === "live");
+  b.innerHTML = kind === "live" ? STOP : MIC;
+  b.setAttribute("aria-label", kind === "live" ? "Stop recording" : "Record this verse");
+}
+function ghFetch(path, method, body) {
+  return fetch("https://api.github.com/repos/" + REC.cfg.repo + "/contents/" + path, {
+    method,
+    headers: { Authorization: "Bearer " + REC.cfg.token, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+    cache: "no-store"
+  });
+}
+async function ghError(r) {
+  let m = ""; try { m = (await r.json()).message || ""; } catch (e) {}
+  if (r.status === 401) return "GitHub rejected the token (expired or mistyped).";
+  if (r.status === 403 || r.status === 404) return "The token cannot write to this repo (check Contents: Read and write).";
+  return "GitHub error " + r.status + (m ? ": " + m : "");
+}
+async function ghSha(path) {
+  const r = await ghFetch(path + "?ref=main", "GET");
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(await ghError(r));
+  return (await r.json()).sha;
+}
+function toBase64(blob) {
+  return new Promise((res, rej) => { const f = new FileReader(); f.onload = () => res(String(f.result).split(",")[1]); f.onerror = rej; f.readAsDataURL(blob); });
+}
+async function publishClip(id, blob, ext) {
+  const name = clipName(id), path = "audio/" + name + "." + ext;
+  recStatus(id, "Saving...");
+  try {
+    const content = await toBase64(blob);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const sha = await ghSha(path);
+      const body = { message: "Add recording for " + (/^\d+$/.test(String(id)) ? "verse " + id : id), content, branch: "main" };
+      if (sha) body.sha = sha;
+      const r = await ghFetch(path, "PUT", body);
+      if (r.ok) break;
+      if (r.status === 409 && attempt === 0) continue;
+      throw new Error(await ghError(r));
+    }
+    // remove a clip with the other extension so the old one cannot win
+    const other = "audio/" + name + "." + (ext === "m4a" ? "webm" : "m4a");
+    const osha = await ghSha(other);
+    if (osha) await ghFetch(other, "DELETE", { message: "Replace recording for " + id, sha: osha, branch: "main" });
+    localClips[id] = URL.createObjectURL(blob);
+    recStatus(id, "Saved. Others will hear it in 1-2 minutes.");
+  } catch (e) {
+    recStatus(id, "Not saved: " + (e.message || "network problem") + " Try again.");
+  }
+}
+function pickMime() {
+  if (!window.MediaRecorder) return "";
+  for (const m of ["audio/mp4", "audio/webm;codecs=opus", "audio/webm"]) { if (MediaRecorder.isTypeSupported(m)) return m; }
+  return "";
+}
+async function toggleRecord(btn) {
+  const id = btn.dataset.rec;
+  if (REC.rec) { if (REC.id === id) REC.rec.stop(); else recStatus(id, "Finish the other recording first."); return; }
+  if (!REC.cfg.token) { recStatus(id, "Add your GitHub token under Recorder tools (page footer) first."); return; }
+  if (!window.MediaRecorder || !navigator.mediaDevices) { recStatus(id, "This browser cannot record audio."); return; }
+  if (clip) clip.pause();
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch (e) { recStatus(id, "Microphone is blocked. Allow it in the browser settings."); return; }
+  const mime = pickMime();
+  const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+  const chunks = [];
+  rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  rec.onstop = async () => {
+    clearTimeout(REC.timer);
+    stream.getTracks().forEach(t => t.stop());
+    REC.rec = null; REC.id = null; recBtn(id, "idle");
+    const type = rec.mimeType || mime || "audio/mp4";
+    const blob = new Blob(chunks, { type });
+    if (blob.size < 2000) { recStatus(id, "Too short. Try again."); return; }
+    await publishClip(id, blob, /webm/.test(type) ? "webm" : "m4a");
+  };
+  REC.rec = rec; REC.id = id;
+  rec.start();
+  REC.timer = setTimeout(() => { if (REC.rec === rec) rec.stop(); }, 120000);
+  recBtn(id, "live");
+  recStatus(id, "Recording. Tap the square to stop.");
+}
+async function deleteClip(btn) {
+  const id = btn.dataset.del;
+  if (btn.dataset.armed !== "1") {
+    btn.dataset.armed = "1"; recStatus(id, "Tap the bin again to delete.");
+    setTimeout(() => { btn.dataset.armed = ""; if (document.getElementById("rs-" + id) && /again to delete/.test(document.getElementById("rs-" + id).textContent)) recStatus(id, ""); }, 4000);
+    return;
+  }
+  btn.dataset.armed = "";
+  if (!REC.cfg.token) { recStatus(id, "Add your GitHub token under Recorder tools first."); return; }
+  recStatus(id, "Deleting...");
+  try {
+    let n = 0;
+    for (const ext of ["m4a", "webm"]) {
+      const path = "audio/" + clipName(id) + "." + ext, sha = await ghSha(path);
+      if (sha) { const r = await ghFetch(path, "DELETE", { message: "Delete recording for " + id, sha, branch: "main" }); if (!r.ok) throw new Error(await ghError(r)); n++; }
+    }
+    delete localClips[id];
+    recStatus(id, n ? "Deleted. It disappears for others in 1-2 minutes." : "Nothing to delete.");
+  } catch (e) { recStatus(id, "Not deleted: " + (e.message || "network problem")); }
+}
+(function () {
+  const panel = document.getElementById("recpanel"), toggle = document.getElementById("recToggle");
+  const repo = document.getElementById("recRepo"), tok = document.getElementById("recToken"), msg = document.getElementById("recMsg");
+  function show() { panel.hidden = !REC.on; toggle.textContent = REC.on ? "Recorder tools: on (tap to turn off)" : "Recorder tools"; repo.value = REC.cfg.repo; tok.placeholder = REC.cfg.token ? "Token saved on this device" : "Paste token"; }
+  toggle.addEventListener("click", e => {
+    e.preventDefault(); REC.on = !REC.on;
+    try { localStorage.setItem("chalisa-recorder", REC.on ? "1" : "0"); } catch (x) {}
+    show(); render();
+  });
+  document.getElementById("recSave").addEventListener("click", () => {
+    REC.cfg.repo = repo.value.trim() || REC.cfg.repo;
+    if (tok.value.trim()) REC.cfg.token = tok.value.trim();
+    tok.value = "";
+    try { localStorage.setItem("chalisa-rec-cfg", JSON.stringify(REC.cfg)); } catch (x) {}
+    msg.textContent = "Saved on this device."; show();
+  });
+  document.getElementById("recClear").addEventListener("click", () => {
+    REC.cfg.token = "";
+    try { localStorage.setItem("chalisa-rec-cfg", JSON.stringify(REC.cfg)); } catch (x) {}
+    msg.textContent = "Token removed from this device."; show();
+  });
+  show();
+})();
 const yts = document.createElement("script"); yts.src = "https://www.youtube.com/iframe_api"; document.head.appendChild(yts);
 render();
 </script>
