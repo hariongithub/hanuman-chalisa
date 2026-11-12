@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hanuman Chalisa Reader</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Devanagari:wght@400;600&family=Noto+Serif+Telugu:wght@400;600&family=Source+Sans+3:wght@400;500;600&family=Source+Serif+4:ital,wght@0,400;1,400&display=swap">
+<style>
+/* Layout: one reading column; sticky toolbar with mode + script switches; verses as ruled entries, not cards. */
+:root {
+  --bg: #f4f6f3;
+  --surface: #ffffff;
+  --ink: #1d2335;
+  --muted: #5c6477;
+  --rule: #d9ddd6;
+  --accent: #c2570c;
+  --accent-ink: #ffffff;
+  --good: #1f7a4d;
+  --bad: #b3261e;
+  --font-dev: "Noto Serif Devanagari", "Noto Serif", serif;
+  --font-tel: "Noto Serif Telugu", "Noto Serif", serif;
+  --font-body: "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sound: "Source Serif 4", Georgia, serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121620; --surface: #1a1f2c; --ink: #e9e8e3; --muted: #9aa1b2; --rule: #2c3345;
+    --accent: #f0a04b; --accent-ink: #1a1206; --good: #5fcf94; --bad: #f08a84;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121620; --surface: #1a1f2c; --ink: #e9e8e3; --muted: #9aa1b2; --rule: #2c3345;
+  --accent: #f0a04b; --accent-ink: #1a1206; --good: #5fcf94; --bad: #f08a84;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 48px;
+}
+.wrap { max-width: 720px; margin: 0 auto; }
+header { padding: 28px 0 16px; }
+h1 { font-family: var(--font-dev); font-size: clamp(1.8rem, 6vw, 2.6rem); font-weight: 600; margin: 0; line-height: 1.2; text-wrap: balance; }
+.sub { margin: 6px 0 0; color: var(--muted); max-width: 52ch; }
+.listen-all { display: inline-block; margin-top: 12px; color: var(--accent); font-weight: 600; text-decoration: none; border-bottom: 1px solid currentColor; }
+.listen-all:focus-visible, button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9; background: var(--bg); padding: 10px 0; border-bottom: 1px solid var(--rule); display: flex; flex-wrap: wrap; gap: 10px 18px; }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg button { font: inherit; font-size: 0.92rem; padding: 7px 12px; border: 0; background: transparent; color: var(--ink); cursor: pointer; min-height: 38px; }
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+
+.group { margin: 34px 0 6px; font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 600; display: flex; gap: 12px; align-items: center; }
+.group::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+
+.verse { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 4px 14px; padding: 18px 0; border-bottom: 1px solid var(--rule); }
+.num { font-family: var(--font-sound); font-size: 1.5rem; color: var(--accent); line-height: 1.2; font-variant-numeric: tabular-nums; }
+.num small { display: block; font-family: var(--font-body); font-size: 0.7rem; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
+.lines { margin: 0; font-size: 1.35rem; line-height: 1.75; }
+.lines.dev { font-family: var(--font-dev); }
+.lines.tel { font-family: var(--font-tel); line-height: 1.9; }
+.lines.eng { font-family: var(--font-sound); font-size: 1.2rem; }
+.lines span { display: block; }
+.sound { margin: 6px 0 0; font-family: var(--font-sound); font-style: italic; color: var(--muted); font-size: 0.98rem; line-height: 1.6; }
+.sound span { display: block; }
+.mean { margin: 10px 0 0; max-width: 60ch; }
+.tools { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.tools button, .tools a { font: inherit; font-size: 0.9rem; color: var(--accent); background: none; border: 0; padding: 4px 0; cursor: pointer; text-decoration: none; font-weight: 500; min-height: 32px; }
+.tools a { border-bottom: 1px solid currentColor; }
+.wbw { margin-top: 8px; overflow-x: auto; }
+.wbw table { border-collapse: collapse; min-width: 100%; font-size: 0.95rem; }
+.wbw td { padding: 5px 14px 5px 0; border-top: 1px solid var(--rule); vertical-align: top; }
+.wbw td:first-child { font-family: var(--font-dev); font-size: 1.1rem; white-space: nowrap; }
+.wbw td:nth-child(2) { font-family: var(--font-sound); font-style: italic; color: var(--muted); white-space: nowrap; }
+
+.practice .veil { cursor: pointer; filter: blur(7px); user-select: none; transition: filter 0.2s; }
+.practice .veil.shown { filter: none; user-select: auto; }
+.hint { color: var(--muted); font-size: 0.9rem; margin: 14px 0 0; }
+
+.quiz { padding: 24px 0; }
+.q-prompt { font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 0 0 8px; }
+.q-line { font-size: 1.45rem; margin: 0 0 18px; }
+.q-line.dev { font-family: var(--font-dev); } .q-line.tel { font-family: var(--font-tel); } .q-line.eng { font-family: var(--font-sound); }
+.opts { display: grid; gap: 10px; }
+.opts button { text-align: left; font: inherit; font-size: 1.15rem; padding: 12px 14px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); border-radius: 8px; cursor: pointer; min-height: 48px; }
+.opts button.dev { font-family: var(--font-dev); } .opts button.tel { font-family: var(--font-tel); } .opts button.eng { font-family: var(--font-sound); }
+.opts button.right { border-color: var(--good); box-shadow: inset 0 0 0 1px var(--good); }
+.opts button.wrong { border-color: var(--bad); box-shadow: inset 0 0 0 1px var(--bad); }
+.q-after { margin-top: 16px; }
+.q-after .mean { margin: 0 0 12px; }
+.primary { font: inherit; font-weight: 600; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 8px; padding: 10px 18px; cursor: pointer; min-height: 44px; }
+.score { margin: 18px 0 0; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.timings p { color: var(--muted); max-width: 60ch; }
+.trow { display: grid; grid-template-columns: 56px 1fr 96px auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--rule); }
+.trow .first { font-family: var(--font-dev); font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.trow input { font: inherit; width: 100%; padding: 7px 8px; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); color: var(--ink); min-height: 38px; font-variant-numeric: tabular-nums; }
+.trow a { color: var(--accent); font-size: 0.9rem; text-decoration: none; border-bottom: 1px solid currentColor; }
+.trow a.off { visibility: hidden; }
+.tbar { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; align-items: center; }
+.tbar .ghost { font: inherit; padding: 8px 14px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); color: var(--ink); cursor: pointer; min-height: 40px; }
+textarea.export { width: 100%; min-height: 110px; font: 0.85rem ui-monospace, monospace; padding: 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); color: var(--ink); }
+footer { margin-top: 36px; color: var(--muted); font-size: 0.88rem; max-width: 62ch; }
+@media (max-width: 480px) {
+  .verse { grid-template-columns: 34px minmax(0, 1fr); gap: 4px 10px; }
+  .lines { font-size: 1.2rem; }
+  .trow { grid-template-columns: 44px 1fr 84px; } .trow a { grid-column: 2 / 4; justify-self: start; }
+}
+@media (prefers-reduced-motion: reduce) { .practice .veil { transition: none; } }
+.player { aspect-ratio: 16 / 9; max-width: 100%; margin: 10px 0 4px; background: #000; border-radius: 8px; overflow: hidden; }
+.player iframe { width: 100%; height: 100%; display: block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>हनुमान चालीसा</h1>
+    <p class="sub">Hanuman Chalisa by Tulsidas: all 40 verses with the two opening couplets and the closing couplet, in Devanagari, Telugu and English sounds, with a plain meaning for each.</p>
+    <a class="listen-all" id="listenAll" href="https://www.youtube.com/watch?v=Ipuh-P9NtuY" target="_blank" rel="noopener">Listen: M. S. Subbulakshmi, Samarpanam (Saregama)</a>
+  </header>
+
+  <div class="player"><div id="yt"></div></div>
+
+  <div class="bar" role="toolbar" aria-label="View options">
+    <div class="seg" id="modes" role="group" aria-label="Mode">
+      <button type="button" data-mode="read" aria-pressed="true">Read</button>
+      <button type="button" data-mode="practice" aria-pressed="false">Practice</button>
+      <button type="button" data-mode="quiz" aria-pressed="false">Quiz</button>
+      <button type="button" data-mode="timings" aria-pressed="false">Timings</button>
+    </div>
+    <div class="seg" id="scripts" role="group" aria-label="Script">
+      <button type="button" data-script="dev" aria-pressed="true">देवनागरी</button>
+      <button type="button" data-script="tel" aria-pressed="false">తెలుగు</button>
+      <button type="button" data-script="eng" aria-pressed="false">English</button>
+    </div>
+  </div>
+
+  <main id="main"></main>
+
+  <footer>
+    Text by Tulsidas (16th century, public domain). Meanings are plain-English renderings written for children. Telugu spellings are machine-converted from the Devanagari and may not match a printed Telugu edition exactly. Word-by-word is available for verses 7 to 16. Recording: M. S. Subbulakshmi and Radha Vishwanathan, Samarpanam, Saregama India.
+  </footer>
+</div>
+
+<script>
+const DATA = [{"id": "D1", "group": "Opening couplets", "dev": ["श्रीगुरु चरन सरोज रज, निज मनु मुकुरु सुधारि", "बरनउँ रघुबर बिमल जसु, जो दायकु फल चारि"], "rom": ["Shri Guru charan saroj raj, nij manu mukuru sudhari", "Baranau Raghubar bimal jasu, jo dayaku phal chari"], "mean": "I clean the mirror of my mind with the dust from my teacher's feet. Then I sing the spotless glory of Lord Rama, who gives the four fruits of life.", "wbw": [], "tel": ["శ్రీగురు చరన్ సరోజ్ రజ్ నిజ్ మను ముకురు సుధారి", "బరనఉఁ రఘుబర్ బిమల్ జసు జో దాయకు ఫల్ చారి"]}, {"id": "D2", "group": "Opening couplets", "dev": ["बुद्धिहीन तनु जानिके, सुमिरौं पवन-कुमार", "बल बुधि बिद्या देहु मोहि, हरहु कलेस बिकार"], "rom": ["Buddhi heen tanu janike, sumiro Pavan-kumar", "Bal buddhi vidya dehu mohi, harahu kalesh vikar"], "mean": "Knowing I am not very wise, I remember Hanuman, son of the Wind. Please give me strength, wisdom and learning, and take away my troubles and faults.", "wbw": [], "tel": ["బుద్ధిహీన్ తను జానికే సుమిరౌం పవన-కుమార్", "బల్ బుధి బిద్యా దేహు మోహి హరహు కలేస్ బికార్"]}, {"id": 1, "group": "Who Hanuman is", "dev": ["जय हनुमान ज्ञान गुन सागर", "जय कपीस तिहुँ लोक उजागर"], "rom": ["Jai Hanuman gyan gun sagar", "Jai Kapis tihun lok ujagar"], "mean": "Hail Hanuman, an ocean of wisdom and goodness. Hail the monkey king, whose light shines across all three worlds.", "wbw": [], "tel": ["జయ్ హనుమాన్ జ్ఞాన్ గున్ సాగర్", "జయ్ కపీస్ తిహుఁ లోక్ ఉజాగర్"]}, {"id": 2, "group": "Who Hanuman is", "dev": ["रामदूत अतुलित बल धामा", "अंजनिपुत्र पवनसुत नामा"], "rom": ["Ram doot atulit bal dhama", "Anjani-putra Pavansut nama"], "mean": "You are Rama's messenger and a home of unmatched strength. You are known as Anjani's son and the son of the Wind.", "wbw": [], "tel": ["రామదూత్ అతులిత్ బల్ ధామా", "అంజనిపుత్ర్ పవనసుత్ నామా"]}, {"id": 3, "group": "Who Hanuman is", "dev": ["महाबीर बिक्रम बजरंगी", "कुमति निवार सुमति के संगी"], "rom": ["Mahabir bikram Bajrangi", "Kumati nivar sumati ke sangi"], "mean": "Great hero, brave and mighty, with a body strong as thunder. You chase away bad thinking and keep good thinking company.", "wbw": [], "tel": ["మహాబీర్ బిక్రమ్ బజరంగీ", "కుమతి నివార్ సుమతి కే సంగీ"]}, {"id": 4, "group": "Who Hanuman is", "dev": ["कंचन बरन बिराज सुबेसा", "कानन कुंडल कुंचित केसा"], "rom": ["Kanchan baran biraj subesa", "Kanan kundal kunchit kesa"], "mean": "Your body shines golden and you are dressed beautifully. You wear earrings and your hair is curly.", "wbw": [], "tel": ["కంచన్ బరన్ బిరాజ్ సుబేసా", "కానన్ కుండల్ కుంచిత్ కేసా"]}, {"id": 5, "group": "Who Hanuman is", "dev": ["हाथ बज्र औ ध्वजा बिराजै", "काँधे मूँज जनेऊ साजै"], "rom": ["Hath bajra aur dhvaja biraje", "Kandhe moonj janeu saje"], "mean": "In your hand are a mighty mace and a flag. A sacred thread of grass adorns your shoulder.", "wbw": [], "tel": ["హాథ్ బజ్ర్ ఔ ధ్వజా బిరాజై", "కాఁధే మూఁజ్ జనేఊ సాజై"]}, {"id": 6, "group": "Who Hanuman is", "dev": ["संकर सुवन केसरीनंदन", "तेज प्रताप महा जग बंदन"], "rom": ["Shankar suvan Kesari nandan", "Tej pratap maha jag bandan"], "mean": "You are a form of Shiva and Kesari's beloved son. Your glow and greatness make the whole world bow to you.", "wbw": [], "tel": ["సంకర్ సువన్ కేసరీనందన్", "తేజ్ ప్రతాప్ మహా జగ్ బందన్"]}, {"id": 7, "group": "Who Hanuman is", "dev": ["बिद्यावान गुनी अति चातुर", "राम काज करिबे को आतुर"], "rom": ["Vidyavaan guni ati chatur", "Ram kaj karibe ko aatur"], "mean": "You are learned, talented and very clever. You are always eager to do Rama's work.", "wbw": [["विद्यावान", "vidyāvān", "learned, full of knowledge"], ["गुणी", "guṇī", "virtuous, skilled"], ["अति", "ati", "very"], ["चातुर", "chātur", "clever, sharp"], ["राम काज", "Rām kāj", "Rama's work (काज = task)"], ["करिबे को", "karibe ko", "to do"], ["आतुर", "ātur", "eager, impatient"]], "tel": ["బిద్యావాన్ గునీ అతి చాతుర్", "రామ్ కాజ్ కరిబే కో ఆతుర్"]}, {"id": 8, "group": "Who Hanuman is", "dev": ["प्रभु चरित्र सुनिबे को रसिया", "राम लखन सीता मन बसिया"], "rom": ["Prabhu charitra sunibe ko rasiya", "Ram Lakhan Sita man basiya"], "mean": "You love listening to the stories of the Lord. Rama, Lakshman and Sita live in your heart.", "wbw": [["प्रभु", "prabhu", "the Lord (Rama)"], ["चरित्र", "charitra", "life story, deeds"], ["सुनिबे को", "sunibe ko", "to listen to"], ["रसिया", "rasiyā", "one who relishes, a lover of"], ["राम लखन सीता", "Rām Lakhan Sītā", "Rama, Lakshman and Sita"], ["मन", "man", "heart, mind"], ["बसिया", "basiyā", "one who lives (there)"]], "tel": ["ప్రభు చరిత్ర్ సునిబే కో రసియా", "రామ్ లఖన్ సీతా మన్ బసియా"]}, {"id": 9, "group": "Who Hanuman is", "dev": ["सूक्ष्म रूप धरि सियहिं दिखावा", "बिकट रूप धरि लंक जरावा"], "rom": ["Sukshma roop dhari Siyahi dikhava", "Vikat roop dhari Lank jarava"], "mean": "You became tiny to show yourself to Sita. You became huge and fierce to burn the city of Lanka.", "wbw": [["सूक्ष्म", "sūkṣma", "tiny, subtle"], ["रूप धरि", "rūp dhari", "having taken a form"], ["सियहिं", "Siyahi", "to Sita (-हिं marks \"to\")"], ["दिखावा", "dikhāvā", "showed"], ["बिकट", "vikaṭ", "huge, fearsome"], ["रूप धरि", "rūp dhari", "having taken a form"], ["लंक", "Lank", "Lanka"], ["जरावा", "jarāvā", "burned"]], "tel": ["సూక్ష్మ్ రూప్ ధరి సియహిం దిఖావా", "బికట్ రూప్ ధరి లంక్ జరావా"]}, {"id": 10, "group": "Who Hanuman is", "dev": ["भीम रूप धरि असुर सँहारे", "रामचंद्र के काज सँवारे"], "rom": ["Bhima roop dhari asur sanghare", "Ramchandra ke kaj sanvare"], "mean": "Taking a giant form, you defeated the demons. You completed every task Rama gave you.", "wbw": [["भीम", "bhīm", "gigantic, terrifying"], ["रूप धरि", "rūp dhari", "having taken a form"], ["असुर", "asur", "demons"], ["सँहारे", "sanhāre", "destroyed"], ["रामचंद्र के", "Rāmchandra ke", "of Ramachandra"], ["काज", "kāj", "tasks"], ["सँवारे", "sanvāre", "set right, completed"]], "tel": ["భీమ్ రూప్ ధరి అసుర్ సఁహారే", "రామచంద్ర్ కే కాజ్ సఁవారే"]}, {"id": 11, "group": "What Hanuman did", "dev": ["लाय सजीवन लखन जियाये", "श्रीरघुबीर हरषि उर लाये"], "rom": ["Laye Sanjivan Lakhan jiyaye", "Shri Raghuvir harashi ur laye"], "mean": "You brought the life-giving herb and saved Lakshman. Rama was so happy that he hugged you.", "wbw": [["लाय", "lāy", "having brought"], ["सजीवन", "sanjīvan", "the life-giving herb (Sanjivani)"], ["लखन", "Lakhan", "Lakshman"], ["जियाये", "jiyāye", "brought back to life"], ["श्रीरघुबीर", "Shrī Raghuvīr", "Lord Rama, hero of the Raghu family"], ["हरषि", "harshi", "rejoicing, delighted"], ["उर", "ur", "heart, chest"], ["लाये", "lāye", "brought, clasped (उर लाये = embraced)"]], "tel": ["లాయ్ సజీవన్ లఖన్ జియాయే", "శ్రీరఘుబీర్ హరషి ఉర్ లాయే"]}, {"id": 12, "group": "What Hanuman did", "dev": ["रघुपति कीन्ही बहुत बड़ाई", "तुम मम प्रिय भरतहि सम भाई"], "rom": ["Raghupati keenhi bahut badai", "Tum mam priya Bharat-hi sam bhai"], "mean": "Rama praised you again and again. He said, \"You are as dear to me as my brother Bharat.\"", "wbw": [["रघुपति", "Raghupati", "Rama, lord of the Raghus"], ["कीन्ही", "kīnhī", "did, gave"], ["बहुत", "bahut", "much"], ["बड़ाई", "badāī", "praise"], ["तुम", "tum", "you"], ["मम", "mam", "my"], ["प्रिय", "priya", "dear"], ["भरतहि सम", "Bharat-hi sam", "equal to Bharat"], ["भाई", "bhāī", "brother"]], "tel": ["రఘుపతి కీన్హీ బహుత్ బड़ాఈ", "తుమ్ మమ్ ప్రియ్ భరతహి సమ్ భాఈ"]}, {"id": 13, "group": "What Hanuman did", "dev": ["सहस बदन तुम्हरो जस गावैं", "अस कहि श्रीपति कंठ लगावैं"], "rom": ["Sahas badan tumharo yash gaave", "Asa kahi Shripati kanth lagaave"], "mean": "\"A thousand mouths will sing your fame,\" said Rama, and he held you close.", "wbw": [["सहस", "sahas", "a thousand"], ["बदन", "badan", "mouths"], ["तुम्हरो", "tumharo", "your"], ["जस", "jas", "fame, glory"], ["गावैं", "gāvaiṃ", "sing"], ["अस", "as", "thus, like this"], ["कहि", "kahi", "having said"], ["श्रीपति", "Shrīpati", "Rama, lord of Shri (Lakshmi)"], ["कंठ", "kanṭh", "neck, throat (here: chest)"], ["लगावैं", "lagāvaiṃ", "hugs, holds close"]], "tel": ["సహస్ బదన్ తుమ్హరో జస్ గావైం", "అస్ కహి శ్రీపతి కంఠ్ లగావైం"]}, {"id": 14, "group": "What Hanuman did", "dev": ["सनकादिक ब्रह्मादि मुनीसा", "नारद सारद सहित अहीसा"], "rom": ["Sankadik Brahmadi Muneesa", "Narad Sarad sahit Aheesa"], "mean": "Sages like Sanaka, the god Brahma, the wise Narada, the goddess Sarasvati and the serpent king Shesha... (the sentence finishes in verse 15)", "wbw": [["सनकादिक", "Sanakādik", "Sanaka and the other sage-brothers"], ["ब्रह्मादि", "Brahmādi", "Brahma and the other gods"], ["मुनीसा", "munīsā", "chiefs of sages"], ["नारद", "Nārad", "the sage Narada"], ["सारद", "Sārad", "Sarasvati, goddess of learning"], ["सहित", "sahit", "together with"], ["अहीसा", "Ahīsā", "lord of serpents (Shesha)"]], "tel": ["సనకాదిక్ బ్రహ్మాది మునీసా", "నారద్ సారద్ సహిత్ అహీసా"]}, {"id": 15, "group": "What Hanuman did", "dev": ["जम कुबेर दिगपाल जहाँ ते", "कबि कोबिद कहि सके कहाँ ते"], "rom": ["Yam Kuber Digpal jahan te", "Kavi kovid kahi sake kahan te"], "mean": "...even Yama, Kubera and the guardians of the directions, and all poets and scholars, cannot fully describe your glory.", "wbw": [["जम", "Jam", "Yama, god of death"], ["कुबेर", "Kuber", "Kubera, god of wealth"], ["दिगपाल", "digpāl", "guardians of the directions"], ["जहाँ ते", "jahān te", "from wherever / even from their realms"], ["कबि", "kabi", "poets"], ["कोबिद", "kobid", "scholars, the learned"], ["कहि सके", "kahi sake", "are able to say"], ["कहाँ ते", "kahān te", "from where? (that is, how?)"]], "tel": ["జమ్ కుబేర్ దిగపాల్ జహాఁ తే", "కబి కోబిద్ కహి సకే కహాఁ తే"]}, {"id": 16, "group": "What Hanuman did", "dev": ["तुम उपकार सुग्रीवहिं कीन्हा", "राम मिलाय राजपद दीन्हा"], "rom": ["Tum upkar Sugreevahin keenha", "Ram milaye rajpad deenha"], "mean": "You helped Sugriva by introducing him to Rama. Because of you he became king.", "wbw": [["तुम", "tum", "you"], ["उपकार", "upkār", "a favor, a kindness"], ["सुग्रीवहिं", "Sugrīvahiṃ", "to Sugriva (-हिं marks \"to\")"], ["कीन्हा", "kīnhā", "did"], ["राम", "Rām", "Rama"], ["मिलाय", "milāy", "having introduced, brought together"], ["राजपद", "rājpad", "the position of king"], ["दीन्हा", "dīnhā", "gave"]], "tel": ["తుమ్ ఉపకార్ సుగ్రీవహిం కీన్హా", "రామ్ మిలాయ్ రాజపద్ దీన్హా"]}, {"id": 17, "group": "What Hanuman did", "dev": ["तुम्हरो मंत्र बिभीषन माना", "लंकेस्वर भए सब जग जाना"], "rom": ["Tumharo mantra Vibhishan maana", "Lankeshwar bhaye sab jag jaana"], "mean": "Vibhishana followed your advice. He became the ruler of Lanka, as the whole world knows.", "wbw": [], "tel": ["తుమ్హరో మంత్ర్ బిభీషన్ మానా", "లంకేస్వర్ భఏ సబ్ జగ్ జానా"]}, {"id": 18, "group": "What Hanuman did", "dev": ["जुग सहस्र जोजन पर भानू", "लील्यो ताहि मधुर फल जानू"], "rom": ["Yug sahastra jojan par Bhanu", "Leelyo tahi madhur phal janu"], "mean": "The sun is thousands of miles away. You leapt up and swallowed it, thinking it was a sweet fruit.", "wbw": [], "tel": ["జుగ్ సహస్ర్ జోజన్ పర్ భానూ", "లీల్యో తాహి మధుర్ ఫల్ జానూ"]}, {"id": 19, "group": "What Hanuman did", "dev": ["प्रभु मुद्रिका मेलि मुख माहीं", "जलधि लाँघि गये अचरज नाहीं"], "rom": ["Prabhu mudrika meli mukh mahee", "Jaladhi langhi gaye achraj nahee"], "mean": "With Rama's ring held in your mouth, you crossed the ocean. That is no surprise.", "wbw": [], "tel": ["ప్రభు ముద్రికా మేలి ముఖ్ మాహీం", "జలధి లాఁఘి గయే అచరజ్ నాహీం"]}, {"id": 20, "group": "What Hanuman did", "dev": ["दुर्गम काज जगत के जेते", "सुगम अनुग्रह तुम्हरे तेते"], "rom": ["Durgam kaj jagat ke jete", "Sugam anugraha tumhare tete"], "mean": "Every hard task in the world becomes easy with your kindness.", "wbw": [], "tel": ["దుర్గమ్ కాజ్ జగత్ కే జేతే", "సుగమ్ అనుగ్రహ్ తుమ్హరే తేతే"]}, {"id": 21, "group": "Hanuman the protector", "dev": ["राम दुआरे तुम रखवारे", "होत न आज्ञा बिनु पैसारे"], "rom": ["Ram duare tum rakhvare", "Hoat na agya binu paisare"], "mean": "You guard the door to Rama's home. No one enters without your permission.", "wbw": [], "tel": ["రామ్ దుఆరే తుమ్ రఖవారే", "హోత్ న్ ఆజ్ఞా బిను పైసారే"]}, {"id": 22, "group": "Hanuman the protector", "dev": ["सब सुख लहै तुम्हारी सरना", "तुम रच्छक काहू को डर ना"], "rom": ["Sab sukh lahai tumhari sarna", "Tum rakshak kahu ko darna"], "mean": "Everyone who takes shelter with you finds happiness. With you as protector, why be afraid?", "wbw": [], "tel": ["సబ్ సుఖ్ లహై తుమ్హారీ సరనా", "తుమ్ రచ్ఛక్ కాహూ కో డర్ నా"]}, {"id": 23, "group": "Hanuman the protector", "dev": ["आपन तेज सम्हारो आपै", "तीनों लोक हाँक तें काँपै"], "rom": ["Aapan tej samharo aapai", "Teenon lok hank te kanpai"], "mean": "Only you can control your own power. All three worlds tremble at your roar.", "wbw": [], "tel": ["ఆపన్ తేజ్ సమ్హారో ఆపై", "తీనోం లోక్ హాఁక్ తేం కాఁపై"]}, {"id": 24, "group": "Hanuman the protector", "dev": ["भूत पिसाच निकट नहिं आवै", "महाबीर जब नाम सुनावै"], "rom": ["Bhoot pisach nikat nahin aavai", "Mahavir jab naam sunavai"], "mean": "Scary spirits do not come near when someone says your name, great hero.", "wbw": [], "tel": ["భూత్ పిసాచ్ నికట్ నహిం ఆవై", "మహాబీర్ జబ్ నామ్ సునావై"]}, {"id": 25, "group": "Hanuman the protector", "dev": ["नासै रोग हरै सब पीरा", "जपत निरंतर हनुमत बीरा"], "rom": ["Nase rog harai sab peera", "Japat nirantar Hanumat beera"], "mean": "Sickness and pain go away for those who keep repeating the name of brave Hanuman.", "wbw": [], "tel": ["నాసై రోగ్ హరై సబ్ పీరా", "జపత్ నిరంతర్ హనుమత్ బీరా"]}, {"id": 26, "group": "Hanuman the protector", "dev": ["संकट तें हनुमान छुड़ावै", "मन क्रम बचन ध्यान जो लावै"], "rom": ["Sankat te Hanuman chhudavai", "Man kram vachan dhyan jo lavai"], "mean": "Hanuman rescues anyone from trouble if they think of him with mind, actions and words.", "wbw": [], "tel": ["సంకట్ తేం హనుమాన్ ఛుड़ావై", "మన్ క్రమ్ బచన్ ధ్యాన్ జో లావై"]}, {"id": 27, "group": "Hanuman the protector", "dev": ["सब पर राम तपस्वी राजा", "तिन के काज सकल तुम साजा"], "rom": ["Sab par Ram tapasvee raja", "Tin ke kaj sakal tum saja"], "mean": "Rama, the saintly king, rules over all. You made all of his tasks easy to finish.", "wbw": [], "tel": ["సబ్ పర్ రామ్ తపస్వీ రాజా", "తిన్ కే కాజ్ సకల్ తుమ్ సాజా"]}, {"id": 28, "group": "Hanuman the protector", "dev": ["और मनोरथ जो कोई लावै", "सोई अमित जीवन फल पावै"], "rom": ["Aur manorath jo koi lavai", "Soi amit jeevan phal pavai"], "mean": "Whoever comes to you with a sincere wish receives a rich and lasting reward.", "wbw": [], "tel": ["ఔర్ మనోరథ్ జో కోఈ లావై", "సోఈ అమిత్ జీవన్ ఫల్ పావై"]}, {"id": 29, "group": "Hanuman the protector", "dev": ["चारों जुग परताप तुम्हारा", "है परसिद्ध जगत उजियारा"], "rom": ["Charon yug partap tumhara", "Hai parsiddh jagat ujiyara"], "mean": "Your glory has lasted through all four ages. Your light is famous across the world.", "wbw": [], "tel": ["చారోం జుగ్ పరతాప్ తుమ్హారా", "హై పరసిద్ధ్ జగత్ ఉజియారా"]}, {"id": 30, "group": "Hanuman the protector", "dev": ["साधु संत के तुम रखवारे", "असुर निकंदन राम दुलारे"], "rom": ["Sadhu sant ke tum rakhvare", "Asur nikandan Ram dulare"], "mean": "You protect good and holy people. You destroy the demons and are Rama's dear one.", "wbw": [], "tel": ["సాధు సంత్ కే తుమ్ రఖవారే", "అసుర్ నికందన్ రామ్ దులారే"]}, {"id": 31, "group": "Blessings and prayer", "dev": ["अष्ट सिद्धि नौ निधि के दाता", "अस बर दीन जानकी माता"], "rom": ["Ashta siddhi nau nidhi ke data", "Asa bar deen Janki mata"], "mean": "You can give eight special powers and nine treasures. Mother Sita gave you this blessing.", "wbw": [], "tel": ["అష్ట్ సిద్ధి నౌ నిధి కే దాతా", "అస్ బర్ దీన్ జానకీ మాతా"]}, {"id": 32, "group": "Blessings and prayer", "dev": ["राम रसायन तुम्हरे पासा", "सदा रहो रघुपति के दासा"], "rom": ["Ram rasayan tumhare pasa", "Sada raho Raghupati ke dasa"], "mean": "You hold the sweet medicine of Rama's name. You are always Rama's faithful servant.", "wbw": [], "tel": ["రామ్ రసాయన్ తుమ్హరే పాసా", "సదా రహో రఘుపతి కే దాసా"]}, {"id": 33, "group": "Blessings and prayer", "dev": ["तुम्हरे भजन राम को पावै", "जनम जनम के दुख बिसरावै"], "rom": ["Tumhare bhajan Ram ko pavai", "Janam janam ke dukh bisravai"], "mean": "Singing your praise leads a person to Rama and lets them forget sorrows of many lifetimes.", "wbw": [], "tel": ["తుమ్హరే భజన్ రామ్ కో పావై", "జనమ్ జనమ్ కే దుఖ్ బిసరావై"]}, {"id": 34, "group": "Blessings and prayer", "dev": ["अंत काल रघुबर पुर जाई", "जहाँ जन्म हरि-भक्त कहाई"], "rom": ["Anta kaal Raghubar pur jai", "Jahan janam Hari-bhakta kahai"], "mean": "At the end of life, such a person goes to Rama's home and is known there as God's devotee.", "wbw": [], "tel": ["అంత్ కాల్ రఘుబర్ పుర్ జాఈ", "జహాఁ జన్మ్ హరి-భక్త్ కహాఈ"]}, {"id": 35, "group": "Blessings and prayer", "dev": ["और देवता चित्त न धरई", "हनुमत सेइ सर्ब सुख करई"], "rom": ["Aur devta chitta na dharai", "Hanumat sei sarva sukh karai"], "mean": "You do not need to keep any other god in mind. Serving Hanuman brings every kind of happiness.", "wbw": [], "tel": ["ఔర్ దేవతా చిత్త్ న్ ధరఈ", "హనుమత్ సేఇ సర్బ్ సుఖ్ కరఈ"]}, {"id": 36, "group": "Blessings and prayer", "dev": ["संकट कटै मिटै सब पीरा", "जो सुमिरै हनुमत बलबीरा"], "rom": ["Sankat kate mite sab peera", "Jo sumirai Hanumat balbeera"], "mean": "Troubles end and all pain disappears for whoever remembers mighty Hanuman.", "wbw": [], "tel": ["సంకట్ కటై మిటై సబ్ పీరా", "జో సుమిరై హనుమత్ బలబీరా"]}, {"id": 37, "group": "Blessings and prayer", "dev": ["जै जै जै हनुमान गोसाईं", "कृपा करहु गुरुदेव की नाईं"], "rom": ["Jai Jai Jai Hanuman Gosain", "Kripa karahu gurudev ki nain"], "mean": "Victory, victory, victory to Lord Hanuman! Please be kind to us, just as a good teacher is.", "wbw": [], "tel": ["జై జై జై హనుమాన్ గోసాఈం", "కృపా కరహు గురుదేవ్ కీ నాఈం"]}, {"id": 38, "group": "Blessings and prayer", "dev": ["जो सत बार पाठ कर कोई", "छूटहि बंदि महा सुख होई"], "rom": ["Jo sat bar path kare koi", "Chhutahi bandi maha sukh hoi"], "mean": "Whoever recites this a hundred times is freed from bonds and finds great joy.", "wbw": [], "tel": ["జో సత్ బార్ పాఠ్ కర్ కోఈ", "ఛూటహి బంది మహా సుఖ్ హోఈ"]}, {"id": 39, "group": "Blessings and prayer", "dev": ["जो यह पढ़ै हनुमान चालीसा", "होय सिद्धि साखी गौरीसा"], "rom": ["Jo yah padhe Hanuman Chalisa", "Hoy siddhi sakhi Gaureesa"], "mean": "Whoever reads this Hanuman Chalisa will succeed. Lord Shiva himself is the witness.", "wbw": [], "tel": ["జో యహ్ పढ़ై హనుమాన్ చాలీసా", "హోయ్ సిద్ధి సాఖీ గౌరీసా"]}, {"id": 40, "group": "Blessings and prayer", "dev": ["तुलसीदास सदा हरि चेरा", "कीजै नाथ हृदय महँ डेरा"], "rom": ["Tulsidas sada Hari chera", "Keejai Nath hridaya mah dera"], "mean": "Tulsidas says: \"I am always Rama's servant. Lord, please make your home in my heart.\"", "wbw": [], "tel": ["తులసీదాస్ సదా హరి చేరా", "కీజై నాథ్ హృదయ్ మహఁ డేరా"]}, {"id": "D3", "group": "Closing couplet", "dev": ["पवनतनय संकट हरन, मंगल मूरति रूप", "राम लखन सीता सहित, हृदय बसहु सुर भूप"], "rom": ["Pavan tanay sankat harana, mangala murati roop", "Ram Lakhan Sita sahit, hridaya basahu sur bhoop"], "mean": "Son of the Wind, remover of troubles, form of goodness: please live in my heart together with Rama, Lakshman and Sita, king of the gods.", "wbw": [], "tel": ["పవనతనయ్ సంకట్ హరన్ మంగల్ మూరతి రూప్", "రామ్ లఖన్ సీతా సహిత్ హృదయ్ బసహు సుర్ భూప్"]}];
+const YT = "https://www.youtube.com/watch?v=Ipuh-P9NtuY";
+const KEY = "chalisa-times-v1";
+const BAKED_TIMES = {}; // fill in once, for example { "1": 62, "2": 70 }, so every visitor gets the links
+const state = { mode: "read", script: "dev", times: Object.assign({}, BAKED_TIMES), quiz: null };
+
+try { const t = JSON.parse(localStorage.getItem(KEY) || "{}"); if (t && typeof t === "object") Object.assign(state.times, t); } catch (e) {}
+function saveTimes() { try { localStorage.setItem(KEY, JSON.stringify(state.times)); } catch (e) {} }
+
+const label = id => typeof id === "number" ? String(id) : id;
+const kindLabel = id => typeof id === "number" ? "Verse" : "Doha";
+function lines(v, script) { return script === "dev" ? v.dev : script === "tel" ? v.tel : v.rom; }
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+function parseTime(s) {
+  s = String(s || "").trim(); if (!s) return null;
+  const m = s.match(/^(\d+):(\d{1,2})$/); if (m) return +m[1] * 60 + +m[2];
+  return /^\d+$/.test(s) ? +s : null;
+}
+function fmt(sec) { return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0"); }
+function linkFor(id) { const t = state.times[id]; return t != null ? YT + "&t=" + t + "s" : null; }
+
+function renderRead() {
+  let html = "", group = "";
+  const practice = state.mode === "practice";
+  DATA.forEach(v => {
+    if (v.group !== group) { group = v.group; html += `<div class="group">${esc(group)}</div>`; }
+    const sc = state.script;
+    const main = lines(v, sc).map(l => `<span>${esc(l)}</span>`).join("");
+    const sound = sc !== "eng" ? `<p class="sound">${v.rom.map(l => `<span>${esc(l)}</span>`).join("")}</p>` : "";
+    const veil = practice ? " veil" : "";
+    const href = linkFor(v.id);
+    const tools = [];
+    tools.push(`<button type="button" data-play="${v.id}">Hear this verse</button>`);
+    if (href) tools.push(`<button type="button" data-listen="${v.id}">In the recording (${fmt(state.times[v.id])})</button>`);
+    if (v.wbw.length && !practice) tools.push(`<button type="button" data-wbw="${v.id}" aria-expanded="false">Word by word</button>`);
+    html += `<article class="verse" id="v-${v.id}">
+      <div class="num">${label(v.id)}<small>${kindLabel(v.id)}</small></div>
+      <div>
+        <p class="lines ${sc}">${main}</p>
+        ${sound ? (practice ? sound.replace('class="sound"', 'class="sound' + veil + '"') : sound) : ""}
+        <p class="mean${veil}">${esc(v.mean)}</p>
+        ${tools.length ? `<div class="tools">${tools.join("")}</div>` : ""}
+        <div class="wbw" id="wbw-${v.id}" hidden></div>
+      </div></article>`;
+  });
+  if (practice) html = `<p class="hint">Read the lines aloud first, then tap the blurred sound or meaning to check yourself.</p>` + html;
+  return html;
+}
+
+function wbwTable(v) {
+  return "<table>" + v.wbw.map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join("") + "</table>";
+}
+
+function newQuestion() {
+  const verses = DATA.filter(v => typeof v.id === "number");
+  const q = verses[Math.floor(Math.random() * verses.length)];
+  const others = verses.filter(v => v !== q).sort(() => Math.random() - 0.5).slice(0, 3);
+  const opts = [q, ...others].sort(() => Math.random() - 0.5);
+  state.quiz = { q, opts, answered: false, right: state.quiz ? state.quiz.right : 0, total: state.quiz ? state.quiz.total : 0 };
+}
+function renderQuiz() {
+  if (!state.quiz) newQuestion();
+  const z = state.quiz, sc = state.script;
+  const opts = z.opts.map((o, i) => `<button type="button" class="${sc}" data-opt="${i}" ${z.answered ? "disabled" : ""}>${esc(lines(o, sc)[1])}</button>`).join("");
+  const after = z.answered ? `<div class="q-after"><p class="mean">${esc(z.q.mean)}</p><button type="button" class="primary" id="nextQ">Next verse</button></div>` : "";
+  return `<section class="quiz"><p class="q-prompt">Verse ${z.q.id}, line 1. Which line comes next?</p>
+    <p class="q-line ${sc}">${esc(lines(z.q, sc)[0])}</p><div class="opts">${opts}</div>${after}
+    <p class="score">Score: ${z.right} of ${z.total}</p></section>`;
+}
+
+function renderTimings() {
+  const rows = DATA.map(v => {
+    const t = state.times[v.id];
+    const href = linkFor(v.id);
+    return `<div class="trow"><span class="num" style="font-size:1.1rem">${label(v.id)}</span>
+      <span class="first">${esc(v.dev[0])}</span>
+      <input type="text" inputmode="numeric" id="t-${v.id}" data-t="${v.id}" placeholder="m:ss" value="${t != null ? fmt(t) : ""}" aria-label="Start time for ${kindLabel(v.id).toLowerCase()} ${label(v.id)}">
+      <a class="${href ? "" : "off"}" href="${href || "#"}" target="_blank" rel="noopener">Test</a></div>`;
+  }).join("");
+  return `<section class="timings"><p>Play the recording in another tab and type the minute and second where each verse starts, for example 1:32. Times are saved in this browser. Once a verse has a time, its Listen link appears in Read mode and opens the recording at that moment.</p>
+    <div class="tbar"><button type="button" class="ghost" id="exportT">Show times as text</button><button type="button" class="ghost" id="clearT">Clear all times</button></div>
+    <textarea class="export" id="exportBox" hidden readonly aria-label="Exported times"></textarea>${rows}</section>`;
+}
+
+function render() {
+  const main = document.getElementById("main");
+  main.className = state.mode === "practice" ? "practice" : "";
+  main.innerHTML = state.mode === "quiz" ? renderQuiz() : state.mode === "timings" ? renderTimings() : renderRead();
+  document.querySelectorAll("#modes button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === state.mode)));
+  document.querySelectorAll("#scripts button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.script === state.script)));
+}
+
+document.getElementById("modes").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return; state.mode = b.dataset.mode; render(); window.scrollTo(0, 0);
+});
+document.getElementById("scripts").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return; state.script = b.dataset.script; render();
+});
+document.getElementById("main").addEventListener("click", e => {
+  const veil = e.target.closest(".veil"); if (veil) { veil.classList.toggle("shown"); return; }
+  const pl = e.target.closest("[data-play]"); if (pl) { playClip(pl); return; }
+  const ls = e.target.closest("[data-listen]"); if (ls) { listenFrom(ls.dataset.listen); return; }
+  const w = e.target.closest("[data-wbw]");
+  if (w) {
+    const v = DATA.find(x => String(x.id) === w.dataset.wbw), box = document.getElementById("wbw-" + w.dataset.wbw);
+    const open = box.hidden; box.hidden = !open; box.innerHTML = open ? wbwTable(v) : ""; w.setAttribute("aria-expanded", String(open)); return;
+  }
+  const o = e.target.closest("[data-opt]");
+  if (o && state.quiz && !state.quiz.answered) {
+    const z = state.quiz, pick = z.opts[+o.dataset.opt]; z.answered = true; z.total++; if (pick === z.q) z.right++;
+    render();
+    document.querySelectorAll("[data-opt]").forEach(b => { const x = z.opts[+b.dataset.opt]; if (x === z.q) b.classList.add("right"); else if (x === pick) b.classList.add("wrong"); });
+    return;
+  }
+  if (e.target.id === "nextQ") { newQuestion(); render(); return; }
+  if (e.target.id === "clearT") { state.times = {}; saveTimes(); render(); return; }
+  if (e.target.id === "exportT") {
+    const box = document.getElementById("exportBox");
+    box.value = DATA.filter(v => state.times[v.id] != null).map(v => label(v.id) + "\t" + fmt(state.times[v.id])).join("\n") || "No times entered yet.";
+    box.hidden = false; box.focus(); box.select(); return;
+  }
+});
+document.getElementById("main").addEventListener("change", e => {
+  const i = e.target.closest("[data-t]"); if (!i) return;
+  const id = i.dataset.t, key = /^\d+$/.test(id) ? +id : id, t = parseTime(i.value);
+  if (t == null) delete state.times[key]; else state.times[key] = t;
+  saveTimes();
+  const row = i.closest(".trow"), a = row.querySelector("a"), href = linkFor(key);
+  a.className = href ? "" : "off"; a.href = href || "#"; i.value = t != null ? fmt(t) : "";
+});
+
+let clip = null, ytPlayer = null, stopAt = null;
+function clipName(id) { id = String(id); return /^\d+$/.test(id) ? id.padStart(2, "0") : id; }
+function playClip(btn) {
+  if (clip) { clip.pause(); }
+  try { if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo(); } catch (e) {}
+  stopAt = null;
+  document.querySelectorAll("[data-play]").forEach(b => { if (b !== btn) b.textContent = "Hear this verse"; });
+  clip = new Audio("audio/" + clipName(btn.dataset.play) + ".m4a");
+  btn.textContent = "Loading...";
+  clip.addEventListener("playing", () => { btn.textContent = "Playing..."; });
+  clip.addEventListener("ended", () => { btn.textContent = "Hear this verse"; });
+  clip.addEventListener("error", () => { btn.textContent = "No recording yet"; });
+  clip.play().catch(() => {});
+}
+function listenFrom(id) {
+  const t = state.times[id]; if (t == null) return;
+  if (clip) clip.pause();
+  const later = DATA.map(v => state.times[v.id]).filter(x => x != null && x > t).sort((a, b) => a - b);
+  stopAt = later.length ? later[0] : null;
+  if (ytPlayer && ytPlayer.seekTo) { ytPlayer.seekTo(t, true); ytPlayer.playVideo(); }
+  else window.open(YT + "&t=" + t + "s", "_blank");
+}
+window.onYouTubeIframeAPIReady = function () {
+  ytPlayer = new YT.Player("yt", { width: "100%", height: "100%", videoId: "Ipuh-P9NtuY", playerVars: { rel: 0, playsinline: 1 } });
+  setInterval(() => {
+    if (stopAt != null && ytPlayer && ytPlayer.getCurrentTime && ytPlayer.getCurrentTime() >= stopAt) { ytPlayer.pauseVideo(); stopAt = null; }
+  }, 300);
+};
+const yts = document.createElement("script"); yts.src = "https://www.youtube.com/iframe_api"; document.head.appendChild(yts);
+render();
+</script>
+</body>
+</html>
